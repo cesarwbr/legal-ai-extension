@@ -1,0 +1,54 @@
+{
+  "name": "extension-template",
+  "version": "1.0.0",
+  "description": "A Cross Browser Extension template",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build:manifest:chrome": "mv dist/manifestv3.json dist/manifest.json",
+    "build:background:chrome": "vite build --config vite.chrome.config.ts",
+    "build:js": "vite build --config vite.content.config.ts",
+    "build:web": "tsc && vite build",
+    "build": "NODE_ENV=production run-s build:js build:web",
+    "build:chrome": "NODE_ENV=production run-s build:js build:background:chrome build:web build:manifest:chrome",
+    "clean": "rm -f extension.zip && rm -rf dist",
+    "zip": "zip -r extension.zip dist/*",
+    "package": "run-s clean build:chrome zip",
+    "preview": "vite preview",
+    "watch": "npm-watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "watch": {
+    "build:chrome": {
+      "patterns": [
+        "content-script",
+        "public",
+        "sidepanel"
+      ],
+      "extensions": "tsx,css,png,jpg,svg,json",
+      "runOnChangeOnly": false
+    }
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.9.1",
+    "@types/chrome": "^0.0.283",
+    "@types/node": "^22.9.0",
+    "@types/turndown": "^5.0.5",
+    "@types/webextension-polyfill": "^0.12.1",
+    "autoprefixer": "^10.4.20",
+    "npm-run-all": "^4.1.5",
+    "npm-watch": "^0.13.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "webextension-polyfill": "^0.12.0"
+  },
+  "dependencies": {
+    "gpt-tokenizer": "^2.6.2",
+    "marked": "^15.0.2",
+    "preact": "^10.24.3",
+    "turndown": "^7.2.0"
+  }
+}
