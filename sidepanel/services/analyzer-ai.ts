@@ -72,7 +72,7 @@ export class AnalyzerAI {
       let session: any;
       try {
         // @ts-ignore
-        session = await window.ai.languageModel.create(params);
+        session = await chrome.aiOriginTrial.languageModel.create(params);
         const result = await session.prompt(prompt);
         return result;
       } catch (e) {
@@ -160,39 +160,6 @@ export class AnalyzerAI {
       category: llmFinding.category,
       confidence: llmFinding.confidence.toUpperCase() as Confidence,
     };
-  }
-
-  private static async generateFinalAnalysisSummary(
-    findings: Finding[],
-    serviceName: string
-  ) {
-    // @ts-ignore
-    const summarizer = await window.ai.summarizer.create({
-      sharedContext: `A privacy policy analysis for ${serviceName}`,
-      type: "key-points",
-      length: "medium",
-      format: "markdown",
-    });
-
-    const summary = await summarizer.summarize(
-      `
-      Service/Company: ${serviceName}
-      Text to analyze:
-      """
-    ${findings
-      .map(
-        (f) =>
-          `- ${f.category} | Risk: ${f.riskLevel} | Finding: ${f.finding} | Reasoning: ${f.reasoning}`
-      )
-      .join("\n")}
-      """
-    `,
-      {
-        context:
-          "As a privacy policy analyst, provide a summary of the findings, keep it simple and focused on user impact.",
-      }
-    );
-    return summary as string;
   }
 
   private static async getFinalConclusion(

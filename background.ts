@@ -1,6 +1,10 @@
 import browser from "webextension-polyfill";
 import Analytics from "./scripts/google-analytics";
 
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error(error));
+
 type Message =
   | {
       action: "POLICY_FOUND";
@@ -49,44 +53,12 @@ async function hideBadge() {
   chrome.action.setBadgeText({ text: "" });
 }
 
-// Handle extension icon click
-chrome.action.onClicked.addListener(async (tab) => {
-  if (currentPolicyUrl) {
-    await hideBadge();
-    await analyzePolicyContent(currentPolicyUrl, tab);
-  }
-});
-
-async function analyzePolicyContent(url: string, tab: chrome.tabs.Tab) {
-  try {
-    const response = await fetch(url);
-    const html = await response.text();
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const textContent = doc.body?.textContent?.trim();
-
-    await chrome.storage.local.set({
-      policyContent: textContent,
-      policyUrl: url,
-    });
-
-    // This will now work because it's in response to clicking the extension icon
-    // Open side panel
-    if (chrome.sidePanel && chrome.sidePanel.open) {
-      await chrome.sidePanel.open({ windowId: tab.windowId });
-    }
-  } catch (error) {
-    console.error("Error analyzing policy:", error);
-  }
-}
-
 // @ts-ignore
 browser.runtime.onMessage.addListener((msg, _sender, response) => {
   try {
     handleMessage(msg as Message, response);
   } catch (e) {
-    console.error(`Cannot handle the ${msg} message`);
+    console.info(`Cannot handle the ${msg} message`);
   }
 
   return true;

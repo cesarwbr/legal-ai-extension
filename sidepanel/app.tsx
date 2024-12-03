@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
 import ReactMarkdown from "react-markdown";
 import { LightbulbIcon } from "lucide-react";
 import { getPageContent, getPageUrl } from "./services/page-content";
@@ -14,9 +14,11 @@ export default function App() {
   const [findingsSortedByRiskLevel, setFindingsSortedByRiskLevel] = useState<
     Finding[]
   >([]);
-  const [summary, setSummary] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [serviceName, setServiceName] = useState("");
+  const [downloadingModel, setDownloadingModel] = useState(false);
+  const [downloadingModelProgress, setDownloadingModelProgress] = useState(0);
   const [conclusion, setConclusion] = useState<{
     priority: string;
     conclusion: string;
@@ -42,13 +44,56 @@ export default function App() {
     });
   };
 
-  useEffect(() => {
+  const initDefaults = useCallback(async () => {
+    if (!("aiOriginTrial" in chrome)) {
+      setError("Error: chrome.aiOriginTrial not supported in this browser");
+      return "not-supported";
+    }
+
+    // @ts-ignore
+    const defaults = await chrome.aiOriginTrial.languageModel.capabilities();
+    console.log("Model default:", defaults);
+
+    if (defaults.available === "no") {
+      setError("Error: chrome.aiOriginTrial not supported in this browser");
+      return "not-supported";
+    }
+
+    if (defaults.available === "after-download") {
+      return "downloading";
+    }
+
+    return "ready";
+  }, []);
+
+  const downloadModelProgress = useCallback(() => {
+    return new Promise((resolve) => {
+      // @ts-ignore
+      ai.languageModel.create({
+        monitor(m: {
+          addEventListener: (event: string, callback: (e: any) => void) => void;
+        }) {
+          m.addEventListener(
+            "downloadprogress",
+            (e: { loaded: number; total: number }) => {
+              console.log(`Downloaded ${e.loaded} of ${e.total} bytes.`);
+              setDownloadingModelProgress(e.loaded / e.total);
+              if (e.loaded === e.total) {
+                resolve(true);
+              }
+            }
+          );
+        },
+      });
+    });
+  }, []);
+
+  const analyzePage = useCallback(async () => {
     setLoading(true);
     getPageContent().then(async (content) => {
       const markdown = HtmlToMarkdownConverter(content);
       const chunks = Chunker.chunk(markdown);
       const result = await AnalyzerAI.analyze(chunks);
-      setSummary(result.summary);
 
       setFindingsSortedByRiskLevel(
         sortFindingsByRiskLevel(result.analyses.allFindings)
@@ -57,7 +102,25 @@ export default function App() {
       setServiceName(result.serviceName || "");
       setLoading(false);
     });
-  }, []);
+  }, [initDefaults]);
+
+  useEffect(() => {
+    async function init() {
+      setLoading(true);
+      const isModelReady = await initDefaults();
+      if (isModelReady === "not-supported") {
+        setError("Error: chrome.aiOriginTrial not supported in this browser");
+        return;
+      }
+
+      if (isModelReady === "downloading") {
+        await downloadModelProgress();
+      }
+
+      analyzePage();
+    }
+    init();
+  }, [analyzePage]);
 
   const animationUrl = useMemo(() => {
     const animationPoll = [
@@ -71,6 +134,19 @@ export default function App() {
 
   return (
     <div className="p-4">
+      {error && <div className="text-red-500">{error}</div>}
+
+      {downloadingModelProgress > 0 && (
+        <div className="flex flex-col justify-center items-center h-full gap-4">
+          <span className="text-sm text-slate-500 max-w-[300px] text-center font-bold">
+            Downloading model...
+            <span className="text-slate-400">
+              {downloadingModelProgress.toFixed(2)}%
+            </span>
+          </span>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex flex-col justify-center items-center h-full gap-4">
           {/* @ts-ignore */}

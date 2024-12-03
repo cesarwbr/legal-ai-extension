@@ -1,16 +1,16 @@
 {
   "name": "__MSG_extName__",
   "description": "__MSG_description__",
-  "version": "2.11.3",
+  "version": "0.0.1",
   "default_locale": "en",
   "manifest_version": 3,
-  "permissions": ["sidePanel", "scripting", "activeTab", "storage", "contextMenus"],
+  "permissions": ["sidePanel", "scripting", "activeTab", "storage", "contextMenus", "aiLanguageModelOriginTrial"],
   "host_permissions": ["<all_urls>"],
   "side_panel": {
     "default_path": "sidepanel/index.html"
   },
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvf0O/bR3JULoj6dOpG7sDif4BNVgootUIfSybh2a7jX47BglfZFNH/aRUgDjNtcTBPinXdGbljMVIudQ7w6LiwVq9b1Ht6ZXFVtHTKOsDWtVh/rVKE/AGue9eQ7xCncHFl4zLJUaDRUIRqe5zvjHtaMr8p92I3c/6k43LmTUp1QHz0NooDJRYKRPLS77YVDX8hZc2yopIH5NIY25Ned3wxZ/NWV70GZkYqFRN+UzvMS8bJUEY23L1AMSX7YQjMThY0BCZ/MBLo8UBLs8vN11EphMpLxnBhF2Zwwj2sCPR0jn0ev8HYCtKmGx8nzOl79oK24RFIsW8YWFB2fd28fBLwIDAQAB",
-  "trial_tokens": ["Aozzz6KfHYqh8q5x+Khse27nSp8YM7Tftv6XZhNO7lgYcP5uQxxBEpMfRhiFbYJV+yJl1fDNzvtao7FswtZGIgQAAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYWhpaWZrb2RnbWlmcGNnbmRja3BwaW1lY25wa3BkbGwiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAofEB/uFTzaZ/Amebu8xuzoJWaxq173LBmG7B3mGirJWywNSF8Kv8JUz3b3KjnyroFbxXjgsjYJJLykzGv8MQ+hNnEt/OmRaRoUMxVM6WFL9+z/B7HgeJqJeORnEBXi4VnGLeQQti6rJQo56CpeDT93EdfErOw4U8Qj/oaGtbfWOHneEWJu81OL8+4dbVFRrfd5bF7vdpzBR9ofQguEC6mRWLjl8ceOVI8iLWDLAbJ8vJO2IKKYaARVaclm7HuVnnoIP8DygM+mkpmVWeZ/vcDjFgNw4nZT/c/mVTEhwyD3FqJlQh20pApMMbv3hP30RSFRH+8m3xQfouldRG4FqFjQIDAQAB",
+  "trial_tokens": ["AsYHZS7vBNpcIgOwBbAvI+/J7nZXOX82orIFuyEn9ntQFdBr0+q3TLOEVKJyvFAgGRcUrGP7kqCX3ZgfOxD3Mg8AAAB4eyJvcmlnaW4iOiJjaHJvbWUtZXh0ZW5zaW9uOi8vYmZiaWtwaGJnYWplaW9vaG5na29naWppbmlraG1laGIiLCJmZWF0dXJlIjoiQUlQcm9tcHRBUElGb3JFeHRlbnNpb24iLCJleHBpcnkiOjE3NjA0ODYzOTl9"],
   "background": {
     "service_worker": "./background.global.js"
   },
