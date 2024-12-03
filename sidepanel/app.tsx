@@ -45,13 +45,9 @@ export default function App() {
   useEffect(() => {
     setLoading(true);
     getPageContent().then(async (content) => {
-      console.log("content", content);
       const markdown = HtmlToMarkdownConverter(content);
-      console.log("markdown", markdown);
       const chunks = Chunker.chunk(markdown);
-      console.log("chunks", chunks);
       const result = await AnalyzerAI.analyze(chunks);
-      console.log("analyses", result);
       setSummary(result.summary);
 
       setFindingsSortedByRiskLevel(

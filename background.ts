@@ -1,10 +1,6 @@
 import browser from "webextension-polyfill";
 import Analytics from "./scripts/google-analytics";
 
-// chrome.sidePanel
-//   .setPanelBehavior({ openPanelOnActionClick: true })
-//   .catch((error) => console.error(error));
-
 type Message =
   | {
       action: "POLICY_FOUND";
@@ -25,7 +21,6 @@ async function handleMessage(
   { action, value }: Message,
   response: ResponseCallback
 ) {
-  console.log("Received message:", action, value);
   if (action === "POLICY_FOUND") {
     await showBadge(value);
     response({ message: "success" });
@@ -43,7 +38,6 @@ async function handleMessage(
 
 let currentPolicyUrl: string | null = null;
 async function showBadge(url: string) {
-  console.log("showBadge", url);
   currentPolicyUrl = url;
   await chrome.storage.local.set({ policyUrl: url });
   // Enable the extension icon
@@ -55,18 +49,8 @@ async function hideBadge() {
   chrome.action.setBadgeText({ text: "" });
 }
 
-// chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-//   if (info.menuItemId === "openSidePanel") {
-//     await hideBadge();
-//     // This will open the panel in all the pages on the current window.
-//     await analyzePolicyContent(currentPolicyUrl ?? "", tab as chrome.tabs.Tab);
-//   }
-// });
-
 // Handle extension icon click
 chrome.action.onClicked.addListener(async (tab) => {
-  console.log("Extension icon clicked");
-  console.log("Current policy URL:", currentPolicyUrl);
   if (currentPolicyUrl) {
     await hideBadge();
     await analyzePolicyContent(currentPolicyUrl, tab);
@@ -81,8 +65,6 @@ async function analyzePolicyContent(url: string, tab: chrome.tabs.Tab) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
     const textContent = doc.body?.textContent?.trim();
-
-    console.log("textContent", textContent);
 
     await chrome.storage.local.set({
       policyContent: textContent,
@@ -104,7 +86,7 @@ browser.runtime.onMessage.addListener((msg, _sender, response) => {
   try {
     handleMessage(msg as Message, response);
   } catch (e) {
-    console.info(`Cannot handle the ${msg} message`);
+    console.error(`Cannot handle the ${msg} message`);
   }
 
   return true;
@@ -116,12 +98,5 @@ addEventListener("unhandledrejection", async (event) => {
 });
 
 browser.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed/updated");
   Analytics.fireEvent("install");
-
-  // chrome.contextMenus.create({
-  //   id: "openSidePanel",
-  //   title: "Open side panel",
-  //   contexts: ["all"],
-  // });
 });

@@ -1,10 +1,8 @@
-import { encode } from "gpt-tokenizer";
 import {
   Finding,
   Chunk,
   RiskLevel,
   LLMFinding,
-  RISK_LEVELS,
   InformationGatheringFinding,
   Confidence,
 } from "./types";
@@ -14,8 +12,6 @@ export class AnalyzerAI {
   private constructor() {}
 
   public static async analyze(chunks: Chunk[]) {
-    // const analyses: { findings: Finding[] }[] = [];
-
     if (chunks.length === 0) {
       return {
         analyses: {
@@ -34,52 +30,20 @@ export class AnalyzerAI {
       };
     }
 
-    // if (chunks.length === 1) {
-    //   try {
-    //     console.log("Analyzing chunk:", chunks[0].title);
-    //     const analysis = await this.analyzeChunk(chunks[0]);
-    //     console.log("🎉 Analysis:", analysis);
-    //     analyses.push(analysis);
-    //   } catch (error) {
-    //     console.error("🚫 Error analyzing chunk:", error);
-    //   }
-    // } else {
     const informationGatheringFindings =
       await this.getInformationGatheringFindings(chunks);
-    console.info(
-      "🎉 Information gathering findings:",
-      informationGatheringFindings
-    );
 
     const serviceName = await this.getServiceName(chunks[0]);
-
-    console.info("🎉 Service name:", serviceName);
 
     const finalAnalysis = await this.getFinalAnalysis(
       informationGatheringFindings,
       serviceName
     );
-    console.info("🎉 Final analysis:", finalAnalysis);
-    // analyses.push(finalAnalysis);
-
-    // const summary = await this.generateFinalAnalysisSummary(
-    //   finalAnalysis.findings,
-    //   serviceName
-    // );
-    // console.info("🎉 Final analysis summary:", summary);
 
     const conclusion = await this.getFinalConclusion(
       finalAnalysis,
       serviceName
     );
-    console.info("🎉 Final conclusion:", conclusion);
-    // }
-
-    // const analyses = await Promise.all(
-    //   chunks.map((chunk) => this.analyzeChunk(chunk))
-    // );
-
-    // console.log("Analyses:", analyses);
 
     const finalAnalysisSummary = this.mergeAnalyses(finalAnalysis);
 
@@ -109,35 +73,14 @@ export class AnalyzerAI {
       try {
         // @ts-ignore
         session = await window.ai.languageModel.create(params);
-        session.addEventListener("contextoverflow", () => {
-          console.log("Context overflow!");
-        });
-        console.log(
-          `System prompt tokens 2: ${await session.countPromptTokens(
-            params.systemPrompt
-          )}`
-        );
-        console.log(
-          `Prompting tokens: ${await session.countPromptTokens(prompt)}`
-        );
-        console.log("Prompting...", "tokens left:", session);
         const result = await session.prompt(prompt);
-        console.log(
-          `Result tokens: ${await session.countPromptTokens(result)}`
-        );
-        console.log("Prompted!", "tokens left:", session);
         return result;
       } catch (e) {
-        console.log("Prompt failed");
         console.error(e);
-        console.log("Prompt:", prompt);
         throw e;
       } finally {
         if (session) {
-          console.log("Destroying session", "tokens left:", session);
-          console.log("⛓️‍💥 Destroying session");
           session.destroy();
-          console.log("⛓️‍💥 Session destroyed");
         }
       }
     };
@@ -219,35 +162,6 @@ export class AnalyzerAI {
     };
   }
 
-  // private static async analyzeChunk(
-  //   chunk: Chunk
-  // ): Promise<{ findings: Finding[] }> {
-  //   try {
-  //     const systemPrompt = Prompts.SYSTEM_PROMPT;
-
-  //     const analysisPrompt = `
-  //     This section is titled "${chunk.title}".
-  //     Text to analyze:
-  //     ${chunk.content}
-  //     `;
-
-  //     console.log(`System prompt tokens: ${encode(systemPrompt).length}`);
-
-  //     const markdown = await this.runPrompt(analysisPrompt, {
-  //       systemPrompt: systemPrompt,
-  //       temperature: 0,
-  //       topK: 10,
-  //     });
-
-  //     const result = this.parseMarkdownTable(markdown) as LLMFinding[];
-
-  //     return { findings: this.transformLLMResult(result) };
-  //   } catch (error) {
-  //     console.error("Error analyzing chunk:", error);
-  //     throw error;
-  //   }
-  // }
-
   private static async generateFinalAnalysisSummary(
     findings: Finding[],
     serviceName: string
@@ -305,8 +219,6 @@ export class AnalyzerAI {
       topK: 10,
     });
 
-    console.log("🎉 Conclusion markdown:", markdown);
-
     const result = this.parseMarkdownTable(markdown) as {
       priority: string;
       conclusion: string;
@@ -351,42 +263,64 @@ export class AnalyzerAI {
         this.groupInformationGatheringFindingsByCategory(findings)
       );
 
-      const analysisResults: Finding[] = [];
+      const analysisResults = await this.promiseAllWithLimit(
+        groupedFindings,
+        async ([category, findings]: [string, string[]]) => {
+          try {
+            const systemPrompt =
+              Prompts.getCategoryFinalAnalysisSystemPrompt(category);
+            const analysisPrompt = `
+              Service/Company: ${serviceName}
+              Findings to analyze:
+              ${findings.map((finding) => `- ${finding}`).join("\n")}
+            `;
 
-      for (const [category, findings] of groupedFindings) {
-        try {
-          const systemPrompt =
-            Prompts.getCategoryFinalAnalysisSystemPrompt(category);
-          const analysisPrompt = `
-          Service/Company: ${serviceName}
-          Findings to analyze:
-          ${findings.map((finding) => `- ${finding}`).join("\n")}
-          `;
-          console.info("🔎 Final analysis prompt:", analysisPrompt);
+            const markdown = await this.runPrompt(analysisPrompt, {
+              systemPrompt: systemPrompt,
+              temperature: 0,
+              topK: 10,
+            });
 
-          const markdown = await this.runPrompt(analysisPrompt, {
-            systemPrompt: systemPrompt,
-            temperature: 0,
-            topK: 10,
-          });
-
-          const result = this.parseMarkdownTable(markdown) as LLMFinding[];
-
-          if (result.length === 0) {
-            continue;
+            const result = this.parseMarkdownTable(markdown) as LLMFinding[];
+            return result.length === 0
+              ? null
+              : this.transformLLMResult(result[0]);
+          } catch (error) {
+            console.error(`🚫 Error analyzing category ${category}:`, error);
+            return null;
           }
-
-          analysisResults.push(this.transformLLMResult(result[0]));
-        } catch (error) {
-          console.error(`🚫 Error analyzing category ${category}:`, error);
         }
-      }
+      );
 
-      return analysisResults;
+      return analysisResults.filter((f) => f !== null) as Finding[];
     } catch (error) {
       console.error("Error getting final analysis:", error);
       throw error;
     }
+  }
+
+  private static async promiseAllWithLimit(
+    items: any[],
+    promiseFn: (item: any) => Promise<any>,
+    limit = 4
+  ) {
+    const results = [];
+    const executing = new Set();
+
+    for (const [index, item] of items.entries()) {
+      const promise = promiseFn(item).then((result) => {
+        executing.delete(promise);
+        return result;
+      });
+      executing.add(promise);
+      results[index] = promise;
+
+      if (executing.size >= limit) {
+        await Promise.race(executing);
+      }
+    }
+
+    return Promise.all(results);
   }
 
   private static async getServiceName(firstChunk: Chunk) {
@@ -409,9 +343,6 @@ export class AnalyzerAI {
   }
 
   private static async getInformationGatheringFindings(chunks: Chunk[]) {
-    console.info(
-      `➡️ Getting information gathering findings for ${chunks.length} chunks`
-    );
     try {
       const systemPrompt = Prompts.SYSTEM_PROMPT_INFORMATION_GATHERING;
       const findings: InformationGatheringFinding[] = [];

@@ -1,5 +1,5 @@
 import { encode } from "gpt-tokenizer";
-import { Chunk, InformationGatheringFinding } from "./types";
+import { Chunk } from "./types";
 
 export class Prompts {
   public static readonly MAX_TOKENS_PER_REQUEST = 2600;
@@ -58,12 +58,6 @@ MEDIUM: Updates mentioned without notification process
 LOW: Clear update process with notification method`,
     },
   ];
-
-  // return `You are an expert privacy lawyer with over 15 years of experience reviewing privacy policies.
-  // Analyze the provided section of a privacy policy and list key points users should know.
-  // Categories to analyze: ${this.ANALYSIS_CATEGORIES.join(", ")}
-  // For each relevant finding, provide a title, a one-line justification (explanation), assign a risk level (Low/Medium/High), and category (category_name) in markdown table format with the columns: 'title', 'justification', 'risk_level', and 'category'.
-  // `;
 
   public static readonly SYSTEM_PROMPT = `You are a privacy policy analyzer. Your task is to identify and explain the most critical aspects of privacy policies in simple terms.
   Focus on these categories: ${this.ANALYSIS_CATEGORIES.join(", ")}.

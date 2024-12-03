@@ -1,40 +1,15 @@
 export async function getPageContent() {
-  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  // if (!tab || !tab.id) {
-  //   throw new Error("No active tab found");
-  // }
-
-  // const result = await chrome.scripting.executeScript({
-  //   target: { tabId: tab.id },
-  //   func: getMainContent,
-  // });
-
-  // if (!result || !result[0] || !result[0].result) {
-  //   throw new Error("No result found");
-  // }
-
-  // return result[0].result as string;
-
   const storage = await chrome.storage.local.get("policyUrl");
-  console.log("storage", storage);
   const response = await fetch(storage.policyUrl);
-  console.log("response", response);
   const html = await response.text();
-  console.log("html", html);
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  console.log("doc", doc);
   const content = getMainContent(doc);
-  console.log("content", content);
   return content;
 }
 
 export async function getPageUrl() {
-  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  // return tab?.url || "";
-
   const policyUrl = await chrome.storage.local.get("policyUrl");
   return policyUrl.policyUrl;
 }
@@ -48,22 +23,7 @@ function getMainContent(doc: Document) {
     return text.length / html.length;
   }
 
-  // Function to count paragraphs and meaningful content
-  // function getContentScore(element: HTMLElement) {
-  //   const paragraphs = element.getElementsByTagName("p").length;
-  //   const images = element.getElementsByTagName("img").length;
-  //   const lists =
-  //     element.getElementsByTagName("ul").length +
-  //     element.getElementsByTagName("ol").length;
-  //   return paragraphs + images + lists * 2;
-  // }
-
   function cleanText(text: string) {
-    // Remove tabs and multiple newlines
-    // text = text.replace(/[\t\n]+/g, "\n");
-    // Remove multiple newlines
-    // text = text.replace(/\n\s+/g, "\n");
-
     // remove all links
     text = text.replace(/https?:\/\/\S+/g, "");
 
@@ -95,12 +55,6 @@ function getMainContent(doc: Document) {
     }
   }
 
-  console.log("Main content:", mainContent);
-
-  // if (mainContent.length > 0) {
-  //   return mainContent.join("\n");
-  // }
-
   // Second try: Find the element with the most content
   let bestElement = null;
   let bestScore = 0;
@@ -130,29 +84,10 @@ function getMainContent(doc: Document) {
     // const score = getContentScore(container as HTMLElement);
     const textRatio = getTextToHtmlRatio(container as HTMLElement);
 
-    // if (
-    //   score > bestScore ||
-    //   (score === bestScore && textRatio > maxTextRatio)
-    // ) {
-    //   bestScore = score;
-    //   maxTextRatio = textRatio;
-    //   bestElement = container;
-    // }
     if (textRatio > 0.2) {
       content.push(cleanText((container as HTMLElement).innerText));
     }
   });
-
-  // if (content.length > 0) {
-  //   return content.join("\n");
-  // }
-
-  console.log("Content:", content);
-
-  // // If we found a good content container, return its text
-  // if (bestElement && bestScore > 2) {
-  //   return cleanText((bestElement as HTMLElement).innerHTML);
-  // }
 
   // Fallback: Get body content excluding obvious non-content elements
   const body = doc.body;

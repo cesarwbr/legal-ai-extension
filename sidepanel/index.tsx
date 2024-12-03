@@ -5,7 +5,7 @@ import "./index.css";
 const pluginTagId = "extension-root";
 const existingInstance = document.getElementById("extension-root");
 if (existingInstance) {
-  console.info("existing instance found, removing");
+  console.error("existing instance found, removing");
   existingInstance.remove();
 }
 

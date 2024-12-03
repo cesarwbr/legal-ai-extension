@@ -124,8 +124,6 @@ export class Chunker {
       Prompts.systemTokensLength -
       Prompts.analysisPromptWithTitleTokensLength;
 
-    console.log("MAX_CHUNK_TOKENS", MAX_CHUNK_TOKENS);
-
     for (const section of sections) {
       const sectionText = `${section.title}\n${section.content}`;
       const sectionTokens = this.estimateTokens(sectionText);
