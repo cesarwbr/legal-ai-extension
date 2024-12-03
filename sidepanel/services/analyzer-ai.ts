@@ -83,6 +83,8 @@ export class AnalyzerAI {
 
     const finalAnalysisSummary = this.mergeAnalyses(finalAnalysis);
 
+    chrome.runtime.sendMessage({ action: "DISMISS_BADGE" });
+
     return {
       analyses: finalAnalysisSummary,
       summary: "",

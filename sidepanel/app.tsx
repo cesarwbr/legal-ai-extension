@@ -1,4 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import ReactMarkdown from "react-markdown";
 import { LightbulbIcon } from "lucide-react";
 import { getPageContent, getPageUrl } from "./services/page-content";
@@ -63,6 +63,16 @@ export default function App() {
     });
   }, []);
 
+  const animationUrl = useMemo(() => {
+    const animationPoll = [
+      "https://lottie.host/1f5629f4-6960-4a8c-ae2c-0908e6b560e9/zRdPnQ6Vxe.json",
+      "https://assets1.lottiefiles.com/packages/lf20_3vbOcw.json",
+      "https://lottie.host/18324c11-7139-46d7-bcf2-67cc0790316f/rSJhtHtkKv.json",
+      "https://lottie.host/fe024d55-bd8a-45de-a4fd-110df5c24584/QMLNO8MtNq.json",
+    ];
+    return animationPoll[Math.floor(Math.random() * animationPoll.length)];
+  }, [loading]);
+
   return (
     <div className="p-4">
       {loading ? (
@@ -71,7 +81,7 @@ export default function App() {
           <Player
             autoplay
             loop
-            src="https://assets1.lottiefiles.com/packages/lf20_3vbOcw.json"
+            src={animationUrl}
             style={{ height: "300px", width: "300px" }}
           />
           <span className="text-sm text-slate-500 max-w-[300px] text-center font-bold">

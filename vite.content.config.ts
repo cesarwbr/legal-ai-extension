@@ -13,12 +13,12 @@ export default defineConfig({
     outDir: resolve(__dirname, "dist"),
     lib: {
       formats: ["iife"],
-      entry: resolve(__dirname, "./content-script/index.tsx"),
+      entry: resolve(__dirname, "./content-script/index.ts"),
       name: "NFL",
     },
     rollupOptions: {
       output: {
-        entryFileNames: "index.global.js",
+        entryFileNames: "content.js",
         extend: true,
       },
     },

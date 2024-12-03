@@ -4,7 +4,7 @@
   "version": "2.11.3",
   "default_locale": "en",
   "manifest_version": 3,
-  "permissions": ["sidePanel", "scripting", "activeTab"],
+  "permissions": ["sidePanel", "scripting", "activeTab", "storage", "contextMenus"],
   "host_permissions": ["<all_urls>"],
   "side_panel": {
     "default_path": "sidepanel/index.html"
@@ -19,5 +19,15 @@
     "32": "ext-icon-32.png",
     "48": "ext-icon-48.png",
     "128": "ext-icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "run_at": "document_end",
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_title": "Analyze Privacy Policy"
   }
 }

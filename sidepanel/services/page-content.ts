@@ -1,28 +1,45 @@
 export async function getPageContent() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!tab || !tab.id) {
-    throw new Error("No active tab found");
-  }
+  // if (!tab || !tab.id) {
+  //   throw new Error("No active tab found");
+  // }
 
-  const result = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: getMainContent,
-  });
+  // const result = await chrome.scripting.executeScript({
+  //   target: { tabId: tab.id },
+  //   func: getMainContent,
+  // });
 
-  if (!result || !result[0] || !result[0].result) {
-    throw new Error("No result found");
-  }
+  // if (!result || !result[0] || !result[0].result) {
+  //   throw new Error("No result found");
+  // }
 
-  return result[0].result as string;
+  // return result[0].result as string;
+
+  const storage = await chrome.storage.local.get("policyUrl");
+  console.log("storage", storage);
+  const response = await fetch(storage.policyUrl);
+  console.log("response", response);
+  const html = await response.text();
+  console.log("html", html);
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  console.log("doc", doc);
+  const content = getMainContent(doc);
+  console.log("content", content);
+  return content;
 }
 
 export async function getPageUrl() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab?.url || "";
+  // const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // return tab?.url || "";
+
+  const policyUrl = await chrome.storage.local.get("policyUrl");
+  return policyUrl.policyUrl;
 }
 
-function getMainContent() {
+function getMainContent(doc: Document) {
   // Function to calculate text-to-html ratio for an element
   function getTextToHtmlRatio(element: HTMLElement) {
     const text = element.innerText.trim();
@@ -72,7 +89,7 @@ function getMainContent() {
   // First try: Look for semantic elements
   const mainContent = [];
   for (const selector of commonSelectors) {
-    const element = document.querySelector(selector);
+    const element = doc.querySelector(selector);
     if (element) {
       mainContent.push(cleanText((element as HTMLElement).innerHTML));
     }
@@ -90,7 +107,7 @@ function getMainContent() {
   let maxTextRatio = 0;
 
   // Get all major container elements
-  const containers = document.querySelectorAll("div, section, article");
+  const containers = doc.querySelectorAll("div, section, article");
 
   const content: string[] = [];
   containers.forEach((container) => {
@@ -138,7 +155,7 @@ function getMainContent() {
   // }
 
   // Fallback: Get body content excluding obvious non-content elements
-  const body = document.body;
+  const body = doc.body;
 
   // Remove common non-content elements before getting text
   const elementsToRemove: string[] = [
