@@ -1,11 +1,10 @@
-# Legal Gist AI Chrome Extension
+# ⚖️ Legal AI Chrome Extension
 
 A browser extension that helps you understand the privacy policy of a website.
 
 ## Features
 
 - 📄 Sidepanel to view the analysis of the privacy policy
-- 🔍 Search through the privacy policy
 - 📊 See the risk distribution of the privacy policy (work in progress)
 
 ## Getting Started
@@ -38,29 +37,6 @@ yarn install
 
 ### Building the Extension
 
-#### Firefox
-
-```bash
-yarn build
-```
-
-The extension will be built in the `dist/` directory by default.
-
-To test in Firefox:
-1. Navigate to `about:debugging#/runtime/this-firefox`
-2. Click "Load Temporary Add-on"
-3. Select `manifest.json` from the `dist/` directory
-
-Alternatively:
-1. Open Firefox
-2. Go to Menu > Add-ons and Themes
-3. Click the gear icon ⚙️
-4. Select "Debug Add-ons"
-5. Click "Load Temporary Add-on"
-6. Navigate to and select `dist/manifest.json`
-
-#### Chrome
-
 ```bash
 yarn build:chrome
 ```
@@ -89,7 +65,6 @@ This will generate a ZIP file suitable for submission to browser extension store
 
 ## Browser Support
 
-- Firefox: Latest version
 - Chrome: Latest version
 
 ## Contributing
@@ -102,8 +77,8 @@ This will generate a ZIP file suitable for submission to browser extension store
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-[Add support information or contact details here]
+If you have any questions or need assistance, please contact us at cesarwbr@gmail.com.
