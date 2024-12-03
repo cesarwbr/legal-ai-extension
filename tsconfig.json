@@ -15,7 +15,11 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./sidepanel/*"]
+    }
   },
   "include": ["content-script", "sidepanel"],
   "references": [{ "path": "./tsconfig.node.json" }]

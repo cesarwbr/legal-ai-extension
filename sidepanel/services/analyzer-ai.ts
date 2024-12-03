@@ -1,31 +1,94 @@
 import { encode } from "gpt-tokenizer";
-import { Finding, Chunk, RiskLevel, LLMFinding, RISK_LEVELS } from "./types";
+import {
+  Finding,
+  Chunk,
+  RiskLevel,
+  LLMFinding,
+  RISK_LEVELS,
+  InformationGatheringFinding,
+  Confidence,
+} from "./types";
 import { Prompts } from "./prompts";
 
 export class AnalyzerAI {
   private constructor() {}
 
   public static async analyze(chunks: Chunk[]) {
-    const analyses: { findings: Finding[] }[] = [];
-    for (const chunk of chunks) {
-      try {
-        console.log("Analyzing chunk:", chunk.title);
-        const analysis = await this.analyzeChunk(chunk);
-        console.log("🎉 Analysis:", analysis);
-        analyses.push(analysis);
-      } catch (error) {
-        console.error("🚫 Error analyzing chunk:", error);
-      }
+    // const analyses: { findings: Finding[] }[] = [];
+
+    if (chunks.length === 0) {
+      return {
+        analyses: {
+          summary: {
+            total_findings: 0,
+            risk_distribution: {
+              LOW: 0,
+              MEDIUM: 0,
+              HIGH: 0,
+            },
+          },
+          allFindings: [],
+        },
+        summary: "",
+        conclusion: null,
+      };
     }
+
+    // if (chunks.length === 1) {
+    //   try {
+    //     console.log("Analyzing chunk:", chunks[0].title);
+    //     const analysis = await this.analyzeChunk(chunks[0]);
+    //     console.log("🎉 Analysis:", analysis);
+    //     analyses.push(analysis);
+    //   } catch (error) {
+    //     console.error("🚫 Error analyzing chunk:", error);
+    //   }
+    // } else {
+    const informationGatheringFindings =
+      await this.getInformationGatheringFindings(chunks);
+    console.info(
+      "🎉 Information gathering findings:",
+      informationGatheringFindings
+    );
+
+    const serviceName = await this.getServiceName(chunks[0]);
+
+    console.info("🎉 Service name:", serviceName);
+
+    const finalAnalysis = await this.getFinalAnalysis(
+      informationGatheringFindings,
+      serviceName
+    );
+    console.info("🎉 Final analysis:", finalAnalysis);
+    // analyses.push(finalAnalysis);
+
+    // const summary = await this.generateFinalAnalysisSummary(
+    //   finalAnalysis.findings,
+    //   serviceName
+    // );
+    // console.info("🎉 Final analysis summary:", summary);
+
+    const conclusion = await this.getFinalConclusion(
+      finalAnalysis,
+      serviceName
+    );
+    console.info("🎉 Final conclusion:", conclusion);
+    // }
 
     // const analyses = await Promise.all(
     //   chunks.map((chunk) => this.analyzeChunk(chunk))
     // );
 
-    console.log("Analyses:", analyses);
+    // console.log("Analyses:", analyses);
 
-    const finalAnalysis = this.mergeAnalyses(analyses);
-    return finalAnalysis;
+    const finalAnalysisSummary = this.mergeAnalyses(finalAnalysis);
+
+    return {
+      analyses: finalAnalysisSummary,
+      summary: "",
+      conclusion,
+      serviceName,
+    };
   }
 
   private static async runPrompt(prompt: string, params: any) {
@@ -69,6 +132,7 @@ export class AnalyzerAI {
         throw e;
       } finally {
         if (session) {
+          console.log("Destroying session", "tokens left:", session);
           console.log("⛓️‍💥 Destroying session");
           session.destroy();
           console.log("⛓️‍💥 Session destroyed");
@@ -143,48 +207,238 @@ export class AnalyzerAI {
     return tables.length === 1 ? tables[0] : tables;
   }
 
-  private static transformLLMResult(llmFindings: LLMFinding[]) {
-    return llmFindings
-      .filter((llmFinding) => {
-        return (
-          Prompts.ANALYSIS_CATEGORIES.includes(llmFinding.category) &&
-          RISK_LEVELS.includes(llmFinding.risk_level.toUpperCase() as RiskLevel)
-        );
-      })
-      .map((llmFinding) => ({
-        title: llmFinding.title,
-        finding: llmFinding.finding,
-        riskExplanation: llmFinding.why_risky,
-        riskLevel: llmFinding.risk_level.toUpperCase() as RiskLevel,
-        category: llmFinding.category,
-      }));
+  private static transformLLMResult(llmFinding: LLMFinding) {
+    return {
+      finding: llmFinding.finding,
+      reasoning: llmFinding.reasoning,
+      riskLevel: llmFinding.risk_level.toUpperCase() as RiskLevel,
+      category: llmFinding.category,
+      confidence: llmFinding.confidence.toUpperCase() as Confidence,
+    };
   }
 
-  private static async analyzeChunk(
-    chunk: Chunk
-  ): Promise<{ findings: Finding[] }> {
-    try {
-      const systemPrompt = Prompts.SYSTEM_PROMPT;
+  // private static async analyzeChunk(
+  //   chunk: Chunk
+  // ): Promise<{ findings: Finding[] }> {
+  //   try {
+  //     const systemPrompt = Prompts.SYSTEM_PROMPT;
 
-      const analysisPrompt = `
-      This section is titled "${chunk.title}".
+  //     const analysisPrompt = `
+  //     This section is titled "${chunk.title}".
+  //     Text to analyze:
+  //     ${chunk.content}
+  //     `;
+
+  //     console.log(`System prompt tokens: ${encode(systemPrompt).length}`);
+
+  //     const markdown = await this.runPrompt(analysisPrompt, {
+  //       systemPrompt: systemPrompt,
+  //       temperature: 0,
+  //       topK: 10,
+  //     });
+
+  //     const result = this.parseMarkdownTable(markdown) as LLMFinding[];
+
+  //     return { findings: this.transformLLMResult(result) };
+  //   } catch (error) {
+  //     console.error("Error analyzing chunk:", error);
+  //     throw error;
+  //   }
+  // }
+
+  private static async generateFinalAnalysisSummary(
+    findings: Finding[],
+    serviceName: string
+  ) {
+    // @ts-ignore
+    const summarizer = await window.ai.summarizer.create({
+      sharedContext: `A privacy policy analysis for ${serviceName}`,
+      type: "key-points",
+      length: "medium",
+      format: "markdown",
+    });
+
+    const summary = await summarizer.summarize(
+      `
+      Service/Company: ${serviceName}
       Text to analyze:
-      ${chunk.content}
-      `;
+      """
+    ${findings
+      .map(
+        (f) =>
+          `- ${f.category} | Risk: ${f.riskLevel} | Finding: ${f.finding} | Reasoning: ${f.reasoning}`
+      )
+      .join("\n")}
+      """
+    `,
+      {
+        context:
+          "As a privacy policy analyst, provide a summary of the findings, keep it simple and focused on user impact.",
+      }
+    );
+    return summary as string;
+  }
 
-      console.log(`System prompt tokens: ${encode(systemPrompt).length}`);
+  private static async getFinalConclusion(
+    findings: Finding[],
+    serviceName: string
+  ) {
+    const systemPrompt = Prompts.SYSTEM_PROMPT_CONCLUSION;
+    const conclusionPrompt = `
+    Service/Company: ${serviceName}
+    Text to analyze:
+    """
+    ${findings
+      .map(
+        (f) =>
+          `- ${f.category} | Risk: ${f.riskLevel} | Finding: ${f.finding} | Reasoning: ${f.reasoning}`
+      )
+      .join("\n")}
+    """
+    `;
 
-      const markdown = await this.runPrompt(analysisPrompt, {
-        systemPrompt: systemPrompt,
-        temperature: 0,
-        topK: 10,
-      });
+    const markdown = await this.runPrompt(conclusionPrompt, {
+      systemPrompt: systemPrompt,
+      temperature: 0,
+      topK: 10,
+    });
 
-      const result = this.parseMarkdownTable(markdown) as LLMFinding[];
+    console.log("🎉 Conclusion markdown:", markdown);
 
-      return { findings: this.transformLLMResult(result) };
+    const result = this.parseMarkdownTable(markdown) as {
+      priority: string;
+      conclusion: string;
+      action: string;
+    }[];
+
+    return result[0];
+  }
+
+  private static transformFindingsStringIntoArray(findings: string) {
+    try {
+      return JSON.parse(findings);
     } catch (error) {
-      console.error("Error analyzing chunk:", error);
+      console.error("Error transforming findings string into array:", error);
+      return [];
+    }
+  }
+
+  private static groupInformationGatheringFindingsByCategory(
+    findings: InformationGatheringFinding[]
+  ) {
+    const grouped: { [key: string]: string[] } = {};
+    findings.forEach((f) => {
+      const findingsArray = this.transformFindingsStringIntoArray(f.findings);
+
+      if (!findingsArray.length) {
+        return;
+      }
+
+      grouped[f.category] = grouped[f.category] || [];
+      grouped[f.category] = [...grouped[f.category], ...findingsArray];
+    });
+    return grouped;
+  }
+
+  private static async getFinalAnalysis(
+    findings: InformationGatheringFinding[],
+    serviceName: string
+  ) {
+    try {
+      const groupedFindings = Object.entries(
+        this.groupInformationGatheringFindingsByCategory(findings)
+      );
+
+      const analysisResults: Finding[] = [];
+
+      for (const [category, findings] of groupedFindings) {
+        try {
+          const systemPrompt =
+            Prompts.getCategoryFinalAnalysisSystemPrompt(category);
+          const analysisPrompt = `
+          Service/Company: ${serviceName}
+          Findings to analyze:
+          ${findings.map((finding) => `- ${finding}`).join("\n")}
+          `;
+          console.info("🔎 Final analysis prompt:", analysisPrompt);
+
+          const markdown = await this.runPrompt(analysisPrompt, {
+            systemPrompt: systemPrompt,
+            temperature: 0,
+            topK: 10,
+          });
+
+          const result = this.parseMarkdownTable(markdown) as LLMFinding[];
+
+          if (result.length === 0) {
+            continue;
+          }
+
+          analysisResults.push(this.transformLLMResult(result[0]));
+        } catch (error) {
+          console.error(`🚫 Error analyzing category ${category}:`, error);
+        }
+      }
+
+      return analysisResults;
+    } catch (error) {
+      console.error("Error getting final analysis:", error);
+      throw error;
+    }
+  }
+
+  private static async getServiceName(firstChunk: Chunk) {
+    const systemPrompt = Prompts.SYSTEM_PROMPT_SERVICE_NAME;
+    const serviceNamePrompt = `
+    Text to analyze:
+    ${firstChunk.content}
+    `;
+
+    const markdown = await this.runPrompt(serviceNamePrompt, {
+      systemPrompt: systemPrompt,
+      temperature: 0,
+      topK: 10,
+    });
+
+    const result = this.parseMarkdownTable(markdown) as {
+      service_name: string;
+    }[];
+    return result[0].service_name;
+  }
+
+  private static async getInformationGatheringFindings(chunks: Chunk[]) {
+    console.info(
+      `➡️ Getting information gathering findings for ${chunks.length} chunks`
+    );
+    try {
+      const systemPrompt = Prompts.SYSTEM_PROMPT_INFORMATION_GATHERING;
+      const findings: InformationGatheringFinding[] = [];
+      for (const chunk of chunks) {
+        try {
+          const analysisPrompt = `
+        This section is titled "${chunk.title}".
+        Text to analyze:
+        ${chunk.content}
+        `;
+
+          const markdown = await this.runPrompt(analysisPrompt, {
+            systemPrompt: systemPrompt,
+            temperature: 0,
+            topK: 10,
+          });
+
+          const result = this.parseMarkdownTable(
+            markdown
+          ) as InformationGatheringFinding[];
+          findings.push(...result);
+        } catch (error) {
+          console.error(`🚫 Error analyzing chunk ${chunk.title}:`, error);
+        }
+      }
+
+      return findings;
+    } catch (error) {
+      console.error("Error getting information gathering findings:", error);
       throw error;
     }
   }
@@ -213,52 +467,13 @@ export class AnalyzerAI {
     return distribution;
   }
 
-  private static mergeAnalyses(analyses: { findings: Finding[] }[]) {
-    // Combine findings from multiple chunks and remove duplicates
-    const allFindings = analyses.flatMap((analysis) => analysis.findings);
-    const uniqueFindings = new Map<string, Finding>();
-
-    for (const finding of allFindings) {
-      const key = `${finding.category}-${finding.title}`; // Create unique key
-      const existingFinding = uniqueFindings.get(key);
-
-      if (
-        !existingFinding ||
-        this.getRiskLevel(finding.riskLevel) >
-          this.getRiskLevel(existingFinding.riskLevel)
-      ) {
-        uniqueFindings.set(key, finding);
-      }
-    }
-
-    // Group findings by category
-    const groupedFindings: { [key: string]: Finding[] } = {};
-    Prompts.ANALYSIS_CATEGORIES.forEach((category) => {
-      groupedFindings[category] = [];
-    });
-
-    for (const finding of uniqueFindings.values()) {
-      if (groupedFindings[finding.category]) {
-        groupedFindings[finding.category].push(finding);
-      }
-    }
-
-    // Sort findings by risk level within each category
-    Object.values(groupedFindings).forEach((findings) => {
-      findings.sort(
-        (a, b) =>
-          this.getRiskLevel(b.riskLevel) - this.getRiskLevel(a.riskLevel)
-      );
-    });
-
+  private static mergeAnalyses(findings: Finding[]) {
     return {
       summary: {
-        total_findings: uniqueFindings.size,
-        risk_distribution: this.calculateRiskDistribution(
-          Array.from(uniqueFindings.values())
-        ),
+        total_findings: findings.length,
+        risk_distribution: this.calculateRiskDistribution(findings),
       },
-      findings_by_category: groupedFindings,
+      allFindings: findings,
     };
   }
 }

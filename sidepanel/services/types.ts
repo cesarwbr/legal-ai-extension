@@ -14,21 +14,28 @@ export type Chunk = {
 };
 
 export type LLMFinding = {
-  title: string;
   finding: string;
   risk_level: RiskLevel;
-  why_risky: string;
+  reasoning: string;
   category: string;
+  confidence: Confidence;
 };
 
 export type Finding = {
-  title: string;
   finding: string;
-  riskExplanation: string;
+  reasoning: string;
   riskLevel: RiskLevel;
   category: string;
+  confidence: Confidence;
+};
+
+export type InformationGatheringFinding = {
+  category: string;
+  findings: string;
 };
 
 export const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"] as const;
+export const CONFIDENCE = ["COMPLETE", "PARTIAL"] as const;
 
 export type RiskLevel = (typeof RISK_LEVELS)[number];
+export type Confidence = (typeof CONFIDENCE)[number];

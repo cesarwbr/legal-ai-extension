@@ -1,4 +1,4 @@
-# Legal Gist Chrome Extension
+# Legal Gist AI Chrome Extension
 
 A browser extension that helps you understand the privacy policy of a website.
 

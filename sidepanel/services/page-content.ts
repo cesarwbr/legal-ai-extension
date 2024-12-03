@@ -17,6 +17,11 @@ export async function getPageContent() {
   return result[0].result as string;
 }
 
+export async function getPageUrl() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab?.url || "";
+}
+
 function getMainContent() {
   // Function to calculate text-to-html ratio for an element
   function getTextToHtmlRatio(element: HTMLElement) {

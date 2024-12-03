@@ -1,14 +1,14 @@
 {
   "extName": {
-    "message": "LegalGist",
+    "message": "Legal AI",
     "description": "Read the legal documents and understand them in a few seconds"
   },
   "title": {
-    "message": "LegalGist",
+    "message": "Legal AI",
     "description": "The extension name"
   },
   "description": {
-    "message": "LegalGist - Read the legal documents and understand them in a few seconds",
+    "message": "Legal AI - Read the legal documents and understand them in a few seconds",
     "description": "The extension description"
   }
 }
