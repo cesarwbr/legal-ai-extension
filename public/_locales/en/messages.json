@@ -1,14 +1,14 @@
 {
   "extName": {
-    "message": "Legal AI",
-    "description": "Read the legal documents and understand them in a few seconds"
+    "message": "Legal AI: Privacy Policy Analyzer",
+    "description": "Extension name"
   },
   "title": {
-    "message": "Legal AI",
+    "message": "Legal AI: Privacy Policy Analyzer",
     "description": "The extension name"
   },
   "description": {
-    "message": "Legal AI - Read the legal documents and understand them in a few seconds",
+    "message": "Legal AI analyzes privacy policies in real-time, providing risk assessments across key privacy dimensions.",
     "description": "The extension description"
   }
 }
